@@ -18,14 +18,14 @@ export default function Diagram1() {
   const [selectedRegion, setSelectedRegion] = useState("Toutes");
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/regions")
+    fetch("https://api-bngrc.onrender.com/api/regions")
       .then(response => response.json())
       .then(data => setRegions([{ id: 0, nom: "Toutes" }, ...data]))
       .catch(error => console.error("Erreur lors de la récupération des régions:", error));
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/data/")
+    fetch("https://api-bngrc.onrender.com/api/data/")
       .then(response => response.json())
       .then(data => {
         let filteredData = data
