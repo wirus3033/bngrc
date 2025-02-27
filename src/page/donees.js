@@ -16,21 +16,21 @@ export default function Donees() {
   const [formData, setFormData] = useState({ id_data: null, type: '', region: '', date: '', nombre: '' });
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/regions")
+    fetch("https://api-bngrc.onrender.com/api/regions")
       .then(response => response.json())
       .then(data => setRegions(data))
       .catch(error => console.error("Erreur lors de la récupération des régions:", error));
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/categories")
+    fetch("https://api-bngrc.onrender.com/api/categories")
       .then(response => response.json())
       .then(data => setCategories([{ id: 0, name: "Tous" }, ...data]))
       .catch(error => console.error("Erreur lors de la récupération des catégories:", error));
   }, []);
 
   const fetchData = () => {
-    fetch("http://localhost:4000/api/data/")
+    fetch("https://api-bngrc.onrender.com/api/data/")
       .then(response => response.json())
       .then(data => setTableData(data))
       .catch(error => console.error("Erreur lors de la récupération des données:", error));
@@ -58,7 +58,7 @@ export default function Donees() {
   };
 
   const handleSubmit = () => {
-    const url = formData.id_data ? `http://localhost:4000/api/data/${formData.id_data}` : "http://localhost:4000/api/data/post";
+    const url = formData.id_data ? `https://api-bngrc.onrender.com/api/data/${formData.id_data}` : "https://api-bngrc.onrender.com/api/data/post";
     const method = formData.id_data ? "PUT" : "POST";
 
     fetch(url, {
@@ -80,7 +80,7 @@ export default function Donees() {
   };
 
   const handleDelete = (id) => {
-    fetch(`http://localhost:4000/api/data/${id}`, {
+    fetch(`https://api-bngrc.onrender.com/api/data/${id}`, {
       method: "DELETE"
     })
       .then(() => fetchData())

@@ -1,8 +1,10 @@
 import React from "react";
-import { AppBar, Toolbar, Box, Typography } from "@mui/material";
-// import logo from "../assets/logoFinance.png";
+import { AppBar, Toolbar, Typography } from "@mui/material";
 
 const Topbar = () => {
+  // Récupérer la date du jour
+  const today = new Date().toLocaleDateString("fr-FR");
+
   return (
     <AppBar
       position="sticky"
@@ -13,16 +15,14 @@ const Topbar = () => {
     >
       <Toolbar style={{ display: "flex", justifyContent: "space-between" }}>
         <Typography variant="h6" component="div" sx={{ fontWeight: "bold" }}>
-        POINTS DE SITUATIONS
+          POINTS DE SITUATIONS
         </Typography>
 
-        {/* Section Dropdown */}
-
-
+        {/* Section date mise à jour automatiquement */}
         <Typography variant="h6" component="div" sx={{ fontWeight: "bold" }}>
-        24/02/2025
+          {today}
         </Typography>
-        
+        {/* Fin de la section date */}
       </Toolbar>
     </AppBar>
   );
