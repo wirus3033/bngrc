@@ -13,6 +13,7 @@ import Diagram2 from "../component/Diagramm/diagram2";
 import Diagram3 from "../component/Diagramm/diagram3";
 import Diagram4 from "../component/Diagramm/diagram4";
 import Diagram5 from "../component/Diagramm/diagram5";
+import BarDiagram1 from "../component/Diagramm/bardiagram1";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -109,12 +110,68 @@ const styles = {
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState({
-    courrierEntrant: 0,
-    courrierSortant: 0,
-    directions: 0,
-    utilisateurs: 0,
-  });
+  const [selectedRegions, setSelectedRegions] = useState([]); // Stocke les régions sélectionnées
+  const [personnesSinistrees, setPersonnesSinistrees] = useState(0); // Nombre total de sinistrés
+  const [totalRegions, setTotalRegions] = useState(23); // Nombre total de régions
+  const [nombreTotalRegions, setNombreTotalRegions] = useState(0); // Nombre total de régions dans la BD
+  const [regionsAvecDonnees, setRegionsAvecDonnees] = useState(0); // Nb de régions qui ont des données (touchées)
+  
+
+  useEffect(() => {
+    fetch("http://localhost:4000/api/regions") // API des régions
+    .then(response => response.json())
+    .then(data => {
+      setNombreTotalRegions(data.length); // Stocke le nombre total de régions existantes
+    })
+    .catch(error => console.error("Erreur lors de la récupération des régions:", error));
+
+  fetch("http://localhost:4000/api/sinistres") // API des données sinistrés
+    .then(response => response.json())
+    .then(data => {
+      const uniqueRegions = [...new Set(data.map(item => item.region_nom))]; // Récupère les régions touchées
+      setRegionsAvecDonnees(uniqueRegions.length); // Stocke le nombre de régions avec des données
+    })
+    .catch(error => console.error("Erreur lors de la récupération des sinistrés:", error));
+    fetch("http://localhost:4000/api/regions") // API des régions
+    .then(response => response.json())
+    .then(data => {
+      setNombreTotalRegions(data.length); // Mettre à jour le nombre total de régions
+    })
+    .catch(error => console.error("Erreur lors de la récupération des régions:", error));
+    
+    fetch("http://localhost:4000/api/data") // API contenant les données des sinistrés
+      .then(response => response.json())
+      .then(data => {
+        // 1️⃣ Filtrer uniquement les personnes sinistrées (categories_id === 3)
+        const sinistresData = data.filter(item => item.categories_id === 3);
+  
+        // 2️⃣ Obtenir la liste des régions uniques ayant des données
+        const uniqueRegions = [...new Set(sinistresData.map(item => item.region_id))];
+        setTotalRegions(uniqueRegions.length); // Mettre à jour le nombre total de régions touchées
+  
+        if (selectedRegions.length === 0) {
+          // 3️⃣ Aucune région sélectionnée → Prendre le total des sinistrés
+          const totalSinistres = sinistresData.reduce((acc, curr) => acc + curr.nombre, 0);
+          setPersonnesSinistrees(totalSinistres);
+        } else {
+          // 4️⃣ Convertir les noms des régions sélectionnées en `region_id`
+          fetch("http://localhost:4000/api/regions")
+            .then(response => response.json())
+            .then(regionData => {
+              const selectedRegionIds = regionData
+                .filter(region => selectedRegions.includes(region.nom))
+                .map(region => region.id);
+  
+              // 5️⃣ Filtrer les données selon les `region_id` sélectionnés
+              const filteredData = sinistresData.filter(item => selectedRegionIds.includes(item.region_id));
+              const totalSinistres = filteredData.reduce((acc, curr) => acc + curr.nombre, 0);
+              setPersonnesSinistrees(totalSinistres);
+            })
+            .catch(error => console.error("Erreur lors de la récupération des régions:", error));
+        }
+      })
+      .catch(error => console.error("Erreur lors de la récupération des sinistrés:", error));
+  }, [selectedRegions]); // Exécuter lorsque `selectedRegions` change     
 
   if (loading) {
     return (
@@ -138,7 +195,7 @@ const Dashboard = () => {
         <Grid item xs={12} md={6}>
           <CardContent style={{ backgroundColor: "white", height: 300 }}>
             <div style={{ height: 300 }}>
-              <Diagram1 />
+            <Diagram1 onSelectRegions={setSelectedRegions} />
             </div>
           </CardContent>
 
@@ -155,53 +212,13 @@ const Dashboard = () => {
             }}
           >
             {/* Texte */}
-            <div
-              style={{
-                paddingRight: 16,
-
-                paddingRight: "16px",
-                marginRight: "16px",
-              }}
-            >
-              <Typography
-                style={{
-                  ...styles.value,
-                  borderBottom: "1px solid #bfe9ff",
-                  paddingBottom: "2px",
-                  display: "inline-block",
-                }}
-              >
-                PERSONNES SINISTREES
-              </Typography>
-
-              <Typography style={styles.label}>
-                04 REGIONS TOUCHEES SUR 23
-              </Typography>
-            </div>
-
-            {/* Ligne de séparation */}
-            <div
-              style={{
-                borderLeft: "2px solid #bfe9ff",
-                height: "60%",
-                margin: "0 16px",
-              }}
-            ></div>
-
-            {/* Icône agrandie */}
-            <People style={{ fontSize: 50 }} />
-
-            {/* Ligne de séparation */}
-            <div
-              style={{
-                borderLeft: "2px solid #bfe9ff",
-                height: "60%",
-                margin: "0 16px",
-              }}
-            ></div>
-
-            {/* Chiffre */}
-            <Typography style={styles.value}>19 764</Typography>
+            <BarDiagram1 
+  selectedRegions={selectedRegions} 
+  personnesSinistrees={personnesSinistrees} 
+  totalRegions={totalRegions} 
+  nombreTotalRegions={nombreTotalRegions} 
+  regionsAvecDonnees={regionsAvecDonnees}
+/>
           </CardContent>
         </Grid>
         <Grid item xs={12} md={6}>
