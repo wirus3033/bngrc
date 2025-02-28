@@ -12,25 +12,27 @@ export default function Donees() {
   const [tableData, setTableData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState(null);
   const [editIndex, setEditIndex] = useState(null);
   const [formData, setFormData] = useState({ id_data: null, type: '', region: '', date: '', nombre: '' });
 
   useEffect(() => {
-    fetch("https://api-bngrc.onrender.com/api/regions")
+    fetch("http://localhost:4000/api/regions")
       .then(response => response.json())
       .then(data => setRegions(data))
       .catch(error => console.error("Erreur lors de la récupération des régions:", error));
   }, []);
 
   useEffect(() => {
-    fetch("https://api-bngrc.onrender.com/api/categories")
+    fetch("http://localhost:4000/api/categories")
       .then(response => response.json())
       .then(data => setCategories([{ id: 0, name: "Tous" }, ...data]))
       .catch(error => console.error("Erreur lors de la récupération des catégories:", error));
   }, []);
 
   const fetchData = () => {
-    fetch("https://api-bngrc.onrender.com/api/data/")
+    fetch("http://localhost:4000/api/data/")
       .then(response => response.json())
       .then(data => setTableData(data))
       .catch(error => console.error("Erreur lors de la récupération des données:", error));
@@ -58,7 +60,7 @@ export default function Donees() {
   };
 
   const handleSubmit = () => {
-    const url = formData.id_data ? `https://api-bngrc.onrender.com/api/data/${formData.id_data}` : "https://api-bngrc.onrender.com/api/data/post";
+    const url = formData.id_data ? `http://localhost:4000/api/data/${formData.id_data}` : "http://localhost:4000/api/data/post";
     const method = formData.id_data ? "PUT" : "POST";
 
     fetch(url, {
@@ -76,15 +78,38 @@ export default function Donees() {
       .then(response => response.json())
       .then(() => fetchData())
       .catch(error => console.error("Erreur lors de l'ajout/modification des données:", error));
+    
     handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    fetch(`https://api-bngrc.onrender.com/api/data/${id}`, {
-      method: "DELETE"
+  const handleConfirmDelete = (id) => {
+    setEntryToDelete(id);
+    setShowConfirmModal(true);
+  };
+
+  const handleDelete = () => {
+    if (entryToDelete) {
+      fetch(`http://localhost:4000/api/data/${entryToDelete}`, {
+        method: "DELETE"
+      })
+        .then(() => fetchData())
+        .catch(error => console.error("Erreur lors de la suppression des données:", error));
+      
+      setShowConfirmModal(false);
+      setEntryToDelete(null);
+    }
+  };
+
+  const handleSubtractValue = (id, currentValue) => {
+    const newValue = Math.max(0, currentValue - 1);
+
+    fetch(`http://localhost:4000/api/data/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: newValue })
     })
       .then(() => fetchData())
-      .catch(error => console.error("Erreur lors de la suppression des données:", error));
+      .catch(error => console.error("Erreur lors de la mise à jour des données:", error));
   };
 
   return (
@@ -110,7 +135,7 @@ export default function Donees() {
             <th>Région</th>
             <th>Date</th>
             <th>Nombre</th>
-            <th>Action</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -122,40 +147,21 @@ export default function Donees() {
               <td>{entry.nombre}</td>
               <td>
                 <Button variant="warning" size="sm" onClick={() => handleShowModal(index, entry)}>Modifier</Button>
-                <Button variant="danger" size="sm" className="ms-2" onClick={() => handleDelete(entry.id_data)}>Supprimer</Button>
+                <Button variant="info" size="sm" className="ms-2" onClick={() => handleSubtractValue(entry.id_data, entry.nombre)}>➖</Button>
+                <Button variant="danger" size="sm" className="ms-2" onClick={() => handleConfirmDelete(entry.id_data)}>Supprimer</Button>
               </td>
             </tr>
           ))}
         </tbody>
       </Table>
+
+      {/* Modal pour Ajouter / Modifier */}
       <Modal show={showModal} onHide={handleCloseModal} centered>
         <Modal.Header closeButton>
           <Modal.Title>{editIndex !== null ? 'Modifier' : 'Ajouter'} une entrée</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Type</Form.Label>
-              <Form.Control as="select" name="type" value={formData.type} onChange={handleChange}>
-                <option value="">Sélectionner un type</option>
-                {categories.slice(1).map((category) => (
-                  <option key={category.id} value={category.name}>{category.name}</option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Région</Form.Label>
-              <Form.Control as="select" name="region" value={formData.region} onChange={handleChange}>
-                <option value="">Sélectionner une région</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={region.nom}>{region.nom}</option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Date</Form.Label>
-              <Form.Control type="date" name="date" value={formData.date} onChange={handleChange} />
-            </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Nombre</Form.Label>
               <Form.Control type="number" name="nombre" value={formData.nombre} onChange={handleChange} />
@@ -165,6 +171,18 @@ export default function Donees() {
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseModal}>Annuler</Button>
           <Button variant="primary" onClick={handleSubmit}>Enregistrer</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de confirmation pour la suppression */}
+      <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmation</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Êtes-vous sûr de vouloir supprimer cette entrée ?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>Annuler</Button>
+          <Button variant="danger" onClick={handleDelete}>Supprimer</Button>
         </Modal.Footer>
       </Modal>
     </div>
